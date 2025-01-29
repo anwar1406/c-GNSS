@@ -13,7 +13,7 @@ Characterization of GNSS station in a Network
    - HDOP (Horizontal DOP)
    - VDOP (Vertical DOP)
    - TDOP (Time DOP)
-3. **Carrier-to-Noise ratio Plot** : Visualize the carrier-noise ratio as a sky plot.
+3. **Carrier-to-Noise ratio Plot**: Visualize the carrier-noise ratio as a sky plot.
     
 
 
@@ -23,5 +23,6 @@ Characterization of GNSS station in a Network
 Clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/your_username/gnss_analysis.git
-cd gnss_analysis
+git clone https://github.com/anwar1406/c-GNSS.git
+
+cd c-GNSS
