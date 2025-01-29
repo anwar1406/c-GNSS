@@ -7,7 +7,7 @@ Characterization of GNSS station in a Network
 
 ### Daily Analysis
 1. **NSAT Plot**: Visualize the number of satellites (NSAT) over time for multiple GNSS constellations.
-2. **DOP Components Plot**: Analyze and visualize GNSS Dilution of Precision (DOP) components:
+2. **DOP Components Plot**: Visualize GNSS Dilution of Precision (DOP) components:
    - GDOP (Geometric DOP)
    - PDOP (Position DOP)
    - HDOP (Horizontal DOP)
