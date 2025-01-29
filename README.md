@@ -25,4 +25,8 @@ Clone the repository to your local machine:
 ```bash
 git clone https://github.com/anwar1406/c-GNSS.git
 
+## Contributer
+1. Ibaad Anwar
+2. Prof. Balaji Devaraju
+
 cd c-GNSS
