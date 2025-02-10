@@ -7,9 +7,9 @@ from collections import Counter
 import os
 from matplotlib.ticker import MultipleLocator
 import scipy as sp
+import seaborn as sns
 
-
-__all__ = ["plot_csmp", "plot_ztd"]
+__all__ = ["plot_csmp", "plot_ztd","plot_pos_gamit"]
 def plot_csmp(filepath,output_path=None):
     """
     Plots observation per cyclle slip and multipath values from a .xlsx file generated from Teqc.
@@ -336,7 +336,107 @@ def plot_ztd(path_to_PPP, path_to_gamit,output_path=None):
         plt.show()
     else:
         plt.show()
+def gamit_pp(file_path):
+    import pandas as pd
+    import datetime
 
+    # Function to parse date and extract day of year
+    def extract_day_of_year(date_str):
+        try:
+            date = datetime.datetime.strptime(date_str, '%Y%m%d')
+            return date.timetuple().tm_yday
+        except ValueError:
+            return None
+
+    # Function to extract numeric data and DOY from a line based on the header format
+    def extract_data_and_doy(line, header_parts):
+        parts = line.split()
+        data = {}
+        for column in ['N', 'E', 'U','dN','ne', 'dE','ee','dU','ue']:
+            if column in header_parts:
+                index = header_parts.index(column)
+                if index < len(parts):
+                    try:
+                        data[column] = float(parts[index])
+                    except ValueError:
+                        data[column] = None
+
+        # Extracting Day of Year from the YYYYMMDD part
+        date_str = parts[0]  # Assuming the date is the first part of the line
+        data['DayOfYear'] = extract_day_of_year(date_str)
+        data['year']  = parts[0][0:4]
+        return data
+
+    # Read the file
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    # The header line gives us an indication of the format
+    header_line = 'YYYYMMDD HHMNSC    DecYr     MJD              N         E         U        dN       ne    F       dE       ee    F        dU       ue   F'
+    header_parts = header_line.split()
+
+    # Extracting data including Day of Year
+    extracted_data_with_doy = []
+    for line in lines:
+        if len(line.split()) == len(header_parts):
+            data_with_doy = extract_data_and_doy(line, header_parts)
+            extracted_data_with_doy.append(data_with_doy)
+
+    # Creating a DataFrame from the extracted data
+    
+    df = pd.DataFrame(extracted_data_with_doy)
+    return df
+def plot_pos_gamit(filepath_pp,output_path=None):
+    df_pp = gamit_pp(filepath_pp)
+    fig, ax = plt.subplots(3, 2, sharex="col", sharey="row", figsize=(16, 14), 
+                           gridspec_kw={'width_ratios': [5, 1]}, dpi=600)
+    
+    # Error bar plots
+    ax[0][0].errorbar(df_pp["DayOfYear"], df_pp["dN"], yerr=df_pp["ne"], fmt='o', capsize=8, 
+                      elinewidth=3, markersize=8, color='black', ecolor='grey')
+    ax[1][0].errorbar(df_pp["DayOfYear"], df_pp["dE"], yerr=df_pp["ee"], fmt='o', capsize=8, 
+                      elinewidth=3, markersize=8, color='black', ecolor='grey')
+    ax[2][0].errorbar(df_pp["DayOfYear"], df_pp["dU"], yerr=df_pp["ue"], fmt='o', capsize=8, 
+                      elinewidth=3, markersize=8, color='black', ecolor='grey')
+    
+    # Y-axis limits and ticks
+    y_limits = [(-3, 3), (-3, 3), (-15, 15)]
+    y_ticks = [np.arange(-3, 4, 1), np.arange(-3, 4, 1), np.arange(-15, 20, 5)]
+    for i in range(3):
+        ax[i][0].set_ylim(y_limits[i])
+        ax[i][0].set_yticks(y_ticks[i])
+        ax[i][0].grid(True)
+        ax[i][0].tick_params(axis='both', which='major', labelsize=30)
+    
+    ax[2][0].tick_params(axis='y', which='major', labelsize=30, colors="#1b9e77")
+    ax[2][0].tick_params(axis='x', which='major', labelsize=30)
+    
+    # Titles and labels
+    ax[0][0].set_title("Positioning", fontsize=30)
+    ax[2][0].set_xlabel("Day of year {}".format(df_pp["year"][0]), fontsize=30)
+    ax[0][0].set_ylabel("North [mm]", fontsize=30)
+    ax[1][0].set_ylabel("East [mm]", fontsize=30)
+    ax[2][0].set_ylabel("Up [mm]", fontsize=30, color="#1b9e77")
+    
+    # X-axis settings
+    ax[2][0].set_xticks(np.arange(df_pp["DayOfYear"].iloc[0], df_pp["DayOfYear"].iloc[-1] + 1, 1))
+    ax[2][0].set_xlim(df_pp["DayOfYear"].iloc[0] - 0.6, df_pp["DayOfYear"].iloc[-1] + 1)
+    
+    # Violin plots
+    for i in range(3):
+        ax[i][1].grid(axis="y")
+    
+    sns.violinplot(y=df_pp["dN"], ax=ax[0][1], inner="box", linewidth=2.5, fill=False)
+    sns.violinplot(y=df_pp["dE"], ax=ax[1][1], inner="box", linewidth=2.5, fill=False)
+    sns.violinplot(y=df_pp["dU"], ax=ax[2][1], inner="box", linewidth=2.5, fill=False)
+    
+    fig.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path)
+        plt.show()
+    else:
+        plt.show()
 
 
 
@@ -345,13 +445,18 @@ def plot_ztd(path_to_PPP, path_to_gamit,output_path=None):
 
 ###Cycle slip
 file_path_csmp = "E:/OneDrive - IIT Kanpur/Phd Thesis/RP1/results/CSR/AGRI.xlsx"
-csmp(file_path_csmp)
+plot_csmp(file_path_csmp)
 
 ###ZTD
 
 path_to_PPP = r"E:/OneDrive - IIT Kanpur/Phd Thesis/RP1/results/ztd_test/PPP"
 path_to_gamit = r"E:/OneDrive - IIT Kanpur/Phd Thesis/RP1/results/ztd_test/GAMIT"
-
 plot_ztd(path_to_PPP, path_to_gamit)
 
+### Positioning(GAMIT)
+
+filepath_pp = "E:/OneDrive - IIT Kanpur/Phd Thesis/RP1/results/GAMIT_PP/MEAN.AGRI.unk.orbit.res"
+
+
+plot_pos_gamit(filepath_pp,output_path=None)
 
