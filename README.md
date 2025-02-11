@@ -14,7 +14,12 @@ Characterization of GNSS station
    - VDOP (Vertical DOP)
    - TDOP (Time DOP)
 3. **Carrier-to-Noise ratio Plot**: Visualize the carrier-noise ratio as a sky plot.
-    
+4. **Multipath Plot**: Visualize the Multipath as a sky plot.
+5. **LC Phase residual Plot**: Visualize the LC Phase residual against elevation(Antenna Performance) and Skyplot.
+
+### Weekly Analysis
+1. **ZTD Plot**: Visualize the zenith tropospheric delay estimation from PPP-ARISEN and GAMIT to analyse environmental variable performance .
+2. **Positioning Plot**: Visualize the post-processed positioning(repeatability) of a station in a baseline processing using GAMIT.
 
 
 ## Installation
