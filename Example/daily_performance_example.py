@@ -58,7 +58,8 @@ def plot_nsat(file_paths, labels, colors, output_path=None):
         plt.savefig(output_path+"nsat.png")
     else:
         plt.show()
-
+    
+    return None
 
 def plot_dop(file_paths, labels, colors, output_path=None):
     """
@@ -100,7 +101,7 @@ def plot_dop(file_paths, labels, colors, output_path=None):
     else:
         plt.show()
 
-
+    return None
 
 def cart2ellipsoid(arr_x):
     
@@ -616,7 +617,7 @@ def plot_cnr(file_obs, file_snr,output_path=None,constellations=["G", "R", "E", 
     df_obs["Azimuth_r"] = df_obs.Azimuth * (np.pi / 180)  # Convert azimuth to radians
     df_obs["Elev_Plot"] = 90 - df_obs.Elevation          # Convert elevation to polar plot scale
 
-    fig, axs = plt.subplots(len(constellations), 1, subplot_kw=dict(projection="polar"), figsize=(12, 12), dpi=600)
+    fig, axs = plt.subplots(len(constellations), 1, subplot_kw=dict(projection="polar"), figsize=(8, 12), dpi=600)
 
     if len(constellations) == 1:
         axs = [axs]  # Ensure axs is iterable for a single subplot
@@ -654,7 +655,7 @@ def plot_cnr(file_obs, file_snr,output_path=None,constellations=["G", "R", "E", 
     else:
         plt.show()
 
-def plot_multipath(file_obs,file_mp,outputh_path = None,fontsize=24, vmax=1, vmin=-1):
+def plot_multipath(file_obs,file_snr,outputh_path = None,fontsize=24, vmax=1, vmin=-1):
     
     """
     Function to plot L1 Pseudorange Multipath as a polar plot.
@@ -669,7 +670,7 @@ def plot_multipath(file_obs,file_mp,outputh_path = None,fontsize=24, vmax=1, vmi
     vmin : float, optional
         Minimum colorbar limit. Default is -1.
     """
-    df_obs2 = obsdata_snr(file_obs,file_mp)
+    df_obs2 = obsdata_snr(file_obs,file_snr)
     df_obs2_g = df_obs2[df_obs2["constellation"]=="G"]
     df_look = df_obs2_g[["Epoch_datetime",'Elevation','Azimuth_r','Elev_Plot',"MP"]] 
     
@@ -708,7 +709,7 @@ def plot_multipath(file_obs,file_mp,outputh_path = None,fontsize=24, vmax=1, vmi
     else:
         plt.show()
 
-    return df_look
+    return None
 def dph_data(file_path):
     Data = []
     column_names = [
@@ -798,18 +799,18 @@ def plot_lcphase(basepath,output_path=None):
     else:
         plt.show()
     
-    
-def daily_performance(files_dop,file_obs,file_snr,basepath_gamit,colors, labels,constellations=["C", "E", "R", "G"],save_path =None):
-    plot_nsat(files_dop, labels, colors)
-    plot_dop(files_dop, labels, colors)
-    plot_cnr(file_obs, file_snr, constellations=["C", "E", "R", "G"])
+    return None
+def daily_performance(files_dop,file_obs,file_snr,basepath_gamit,colors, labels,outpath_path=None):
+    plot_nsat(files_dop, labels, colors,output_path) 
+    plot_dop(files_dop, labels, colors,output_path)
+    plot_cnr(file_obs, file_snr,output_path)
     plot_multipath(file_obs, file_mp)
     plot_lcphase(basepath_gamit)
     return None
 
 
 #%%
-#Example Individual 
+#Example 
 
 #inputs 
 files_dop = [
@@ -826,25 +827,24 @@ file_snr = "D:/c-GNSS/Example/RTKLIB/agri_snr.txt"
 labels = ["GPS", "GLONASS", "Galileo", "Beidou", "G+R+E+C"]
 colors = ["#e41a1c", "#4daf4a", "#984ea3", "#ff7f00", "#377eb8"]
 
-#Call function 
+#Call function Individually
 output_path = r"D:/c-GNSS/Example/Output/"  
 # make sure to use backword slash at the end of path
 
 
-#%%Nsat 
 plot_nsat(files_dop, labels, colors,output_path)  
 
-#%% DOP 
+
 plot_dop(files_dop, labels, colors,output_path)
-#%% CNR
+
 
 plot_cnr(file_obs, file_snr,output_path)
 
-#%%
 plot_multipath(file_obs, file_snr,output_path)
 
+plot_lcphase(basepath_gamit,output_path)
 #%%
-plot_lcphase(basepath_gamit)
+
 
 
 
