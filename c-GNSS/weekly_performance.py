@@ -433,7 +433,7 @@ def plot_pos_gamit(filepath_pp,output_path=None):
     fig.tight_layout()
     
     if output_path:
-        plt.savefig(output_path)
+        plt.savefig(output_path+"positioning.png")
         plt.show()
     else:
         plt.show()

@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 from matplotlib.dates import DateFormatter
-
+from pylab import*
 c = 299792458
 dtr = np.pi/180
 
@@ -652,17 +652,59 @@ def plot_snr(file_obs, file_snr, constellations=["G", "R", "E", "C"], cmap="plas
     cbar.ax.set_ylabel("L1 " + r"$\mathrm{C/N_0(db-Hz)}$", fontsize=14, rotation=270, labelpad=15)
 
     plt.show()
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Feb 11 12:52:39 2025
 
-@author: ibaad
-"""
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-dtr = np.pi / 180
+def plot_multipath(file_obs,file_snr,fontsize=24, vmax=1, vmin=-1,outputh_path = None):
+    
+    """
+    Function to plot L1 Pseudorange Multipath as a polar plot.
+    
+    Parameters:
+    df_look : DataFrame
+        Data containing 'Azimuth_r', 'Elev_Plot', and 'MP' columns.
+    fontsize : int, optional
+        Font size for labels. Default is 24.
+    vmax : float, optional
+        Maximum colorbar limit. Default is 1.
+    vmin : float, optional
+        Minimum colorbar limit. Default is -1.
+    """
+    df_obs2 = obsdata_snr(file_obs,file_snr)
+    df_obs2_g = df_obs2[df_obs2["constellation"]=="G"]
+    df_look = df_obs2_g[["Epoch_datetime",'Elevation','Azimuth_r','Elev_Plot',"MP"]] 
+    cmap = cm.get_cmap('RdGy', 8)
+    fig, axs = plt.subplots(subplot_kw=dict(projection="polar"), figsize=(16, 16), dpi=600)
+
+    val = df_look["MP"].values
+    r = df_look['Elev_Plot'].values
+    theta = df_look['Azimuth_r'].values
+
+    sc = axs.scatter(theta, r, c=val, cmap=cmap, s=10, vmin=vmin, vmax=vmax)
+    axs.set_rmax(90)
+    axs.set_yticklabels([])
+    axs.set_rlabel_position(0)
+    axs.grid(True)
+    axs.set_rorigin(0)
+    axs.set_theta_zero_location("N")
+    axs.set_theta_direction(-1)
+    axs.set_rticks([0, 15, 30, 45, 60, 75, 90])
+    
+    for i, text in enumerate(["75", "60", "45", "30", "15"]):
+        axs.text(0, (i+1)*15, text, fontsize=fontsize)
+    
+    axs.tick_params(axis='x', which='major', labelsize=fontsize)
+    
+    # Move colorbar to the right
+    cbar_ax = fig.add_axes([0.92, 0.2, 0.02, 0.6])
+    cbar = fig.colorbar(sc, cax=cbar_ax, ticks=np.arange(vmin, vmax + .1, .25),
+                        orientation='vertical', location='right', pad=0.2)
+    cbar.ax.tick_params(labelsize=fontsize)
+    cbar.ax.set_ylabel("L1 Pseudorange Multipath [m]", fontsize=fontsize, labelpad=20)
+    
+    if outputh_path:
+        plt.savefig(outputh_path+"multipath.png")
+        plt.show()
+    else:
+        plt.show()
 
 
 def dph_data(file_path):
@@ -755,10 +797,6 @@ def plot_lcphase(basepath,output_path=None):
         plt.show()
     
     
-#Example
-basepath_gamit = "/home/ibaad/Documents/new_GAMIT/new/GAMIT8/297G"
-
-plot_lcphase(basepath)
 def daily_performance(files_dop,file_obs,file_snr,basepath_gamit,colors, labels,constellations=["C", "E", "R", "G"],save_path =None):
     plot_nsat(files_dop, labels, colors)
     plot_dop(files_dop, labels, colors)
