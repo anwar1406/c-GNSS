@@ -652,9 +652,116 @@ def plot_snr(file_obs, file_snr, constellations=["G", "R", "E", "C"], cmap="plas
     cbar.ax.set_ylabel("L1 " + r"$\mathrm{C/N_0(db-Hz)}$", fontsize=14, rotation=270, labelpad=15)
 
     plt.show()
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb 11 12:52:39 2025
 
-def daily_performance(files_dop,file_obs,file_snr,colors, labels,constellations=["C", "E", "R", "G"],save_path =None):
+@author: ibaad
+"""
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+dtr = np.pi / 180
+
+
+def dph_data(file_path):
+    Data = []
+    column_names = [
+        'Epoch', 'L1 cyc', 'L2 cyc', 'P1 cyc', 'P2 cyc', 'LC cyc', 
+        'LG cyc', 'PC cyc', 'WL cyc', 'N cyc', 'LSV', 
+        'Azimuth', 'Elev', 'PF', 'data_flag', 'L1_cycles', 'L2_cycles', 'PRN'
+    ]
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            for line in lines[2:]:
+                data = line.split()
+                data = [np.nan if x == "********" else float(x) for x in data]
+                Data.append(data)
+        df = pd.DataFrame(Data, columns=column_names)
+        if not df.empty:
+            sat_id = df["PRN"].dropna().unique()
+            df["L1_cycles"].replace(sat_id[0], np.nan, inplace=True)
+            df["PRN"] = sat_id[0]
+            df["Azimuth"] *= dtr
+            df["Elev1"] = 90 - df["Elev"]
+    except ValueError:
+        column_names1 = [
+            'Epoch', 'L1 cyc', 'L2 cyc', 'P1 cyc', 'P2 cyc', 'LC cyc', 
+            'LG cyc', 'PC cyc', 'WL cyc', 'N cyc', 'LSV', 
+            'Azimuth', 'Elev', 'PF', 'data_flag', 'PRN'
+        ]
+        df = pd.DataFrame(Data, columns=column_names1)
+        if not df.empty:
+            df["Azimuth"] *= dtr
+            df["Elev1"] = 90 - df["Elev"]
+    return df
+def plot_lcphase(basepath,output_path=None):
+    PRN = [f'PRN{i:02d}' for i in range(1, 33)]
+    df_iitk = pd.DataFrame()
+    
+    for sat in PRN:
+        file_path_i = f"{basepath}/DPH.IITK.{sat}"
+        df = dph_data(file_path_i)
+        df_iitk = pd.concat([df_iitk, df], ignore_index=True)
+    
+    df_iitk = df_iitk[df_iitk['LC cyc'] != 9999]
+    df_iitk["LC cyc"] *= 0.19 * 10**3
+    df_iitk = df_iitk[df_iitk["Elev"].between(10, 90)]
+    df_iitk = df_iitk[df_iitk["LC cyc"].between(-100, 100)]
+    
+    val1_g = df_iitk["LC cyc"].values
+    r1_g = df_iitk['Elev1'].values
+    theta1_g = df_iitk['Azimuth'].values
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10), dpi=600)
+    fontsize = 24
+    
+    ax1.scatter(df_iitk["Elev"], df_iitk["LC cyc"], c='black', s=1, edgecolors='black')
+    ax1.set_xlabel('Elevation [deg]', fontsize=fontsize)
+    ax1.set_ylabel('LC Phase residual [mm]', fontsize=fontsize)
+    ax1.tick_params(axis='both', which='major', labelsize=fontsize)
+    ax1.set_ylim(-100, 100)
+    ax1.set_xlim(0, 90)
+    ax1.grid(True)
+    
+    ax2 = plt.subplot(122, projection='polar')
+    sc = ax2.scatter(theta1_g, r1_g, c=val1_g, cmap='seismic', s=10)
+    ax2.set_rmax(90)
+    ax2.set_yticklabels([])
+    ax2.set_rlabel_position(0)
+    ax2.grid(True)
+    ax2.set_rorigin(0)
+    ax2.set_theta_zero_location("N")
+    ax2.set_theta_direction(-1)
+    ax2.set_rticks([0, 15, 30, 45, 60, 75, 90])
+    
+    for i, text in enumerate(["75", "60", "45", "30", "15"]):
+        ax2.text(0, (i+1)*15, text, fontsize=fontsize)
+    ax2.tick_params(axis='x', which='major', labelsize=fontsize)
+    
+    cbar_ax = fig.add_axes([0.92, 0.1, 0.02, 0.85])
+    cbar = fig.colorbar(sc, cax=cbar_ax, ticks=np.arange(-100, 110, 25), extend='both')
+    cbar.ax.tick_params(labelsize=24)
+    cbar.ax.set_ylabel("LC Phase residual [mm]", fontsize=fontsize)
+    
+    plt.tight_layout(rect=[0, 0, 0.9, 1])
+    
+    if output_path:
+        plt.savefig(output_path+"dph.png")
+        plt.show()
+    else:
+        plt.show()
+    
+    
+#Example
+basepath_gamit = "/home/ibaad/Documents/new_GAMIT/new/GAMIT8/297G"
+
+plot_lcphase(basepath)
+def daily_performance(files_dop,file_obs,file_snr,basepath_gamit,colors, labels,constellations=["C", "E", "R", "G"],save_path =None):
     plot_nsat(files_dop, labels, colors)
     plot_dop(files_dop, labels, colors)
     plot_snr(file_obs, file_snr, constellations=["C", "E", "R", "G"])
+    plot_lcphase(basepath_gamit)
     return None
