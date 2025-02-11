@@ -18,8 +18,9 @@ Characterization of GNSS station
 5. **LC Phase residual Plot**: Visualize the LC Phase residual against elevation(Antenna Performance) and Skyplot.
 
 ### Weekly Analysis
-1. **ZTD Plot**: Visualize the zenith tropospheric delay estimation from PPP-ARISEN and GAMIT to analyse environmental variable performance .
-2. **Positioning Plot**: Visualize the post-processed positioning(repeatability) of a station in a baseline processing using GAMIT.
+1. **Cycle slip ratio and Multipath plot**: Visualize the daily cycle slip ratio and moving average multipath over the week.
+2. **ZTD Plot**: Visualize the zenith tropospheric delay estimation from PPP-ARISEN and GAMIT to analyse environmental variable performance.
+3. **Positioning Plot**: Visualize the post-processed positioning(repeatability) of a station in a baseline processing using GAMIT.
 
 
 ## Installation
