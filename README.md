@@ -1,5 +1,5 @@
 # c-GNSS
-Characterization of GNSS station
+Characterization of a GNSS station
 
 **c-GNSS** is a Python package for daily and weekly performance analysis of GNSS stations. This module uses processed GNSS data from RTKLIB, Teqc, GAMIT/GLOBK and PPP-ARISEN  to generate insightful plots and visualizations, helping analyze the quality of GNSS station.
 
@@ -34,6 +34,6 @@ cd c-GNSS
 ```
 
 
-## Contributers
+## Contributors
 1. Ibaad Anwar
-2. Prof. Balaji Devaraju
+2. Balaji Devaraju
