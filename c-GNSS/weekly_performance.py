@@ -8,6 +8,12 @@ import os
 from matplotlib.ticker import MultipleLocator
 import scipy as sp
 import seaborn as sns
+import matplotlib.gridspec as gridspec
+import glob
+from datetime import datetime,timedelta
+
+
+
 
 __all__ = ["plot_csmp", "plot_ztd","plot_pos_gamit"]
 def plot_csmp(filepath,output_path=None):
@@ -43,15 +49,15 @@ def plot_csmp(filepath,output_path=None):
     ax2 = df_csmp.plot(x='DOY', y=["mp1", "mp2"], lw=4,
                         fontsize=40, grid=True, color=["#1b9e77", "#7570b3"], 
                         ax=plt.gca())
-    
+    colors = ["#1b9e77", "#7570b3"]
     # Customize the y-axis and labels
     ax2.set_ylim(0, 1)
-    ax2.set_ylabel("Multipath [m]", fontsize=40)
+    ax2.set_ylabel("Multipath [m]", fontsize=12)
     ax2.grid(True, axis="y")
     ax2.set_xlim(xlim_i, xlim_f)
     ax2.tick_params(axis='both', which='major', labelsize=40)
-    ax2.set_xlabel("Day of Year 2022", fontsize=40)
-    ax2.set_yticks(np.arange(0, 1.1, 0.2))
+    #ax2.set_xlabel("Day of Year 2022", fontsize=40)
+    ax2.set_yticks(np.arange(0, 1.1, 0.25))
     ax2.legend(["MP1", "MP2"], loc='upper right', fontsize=40)
     
     if output_path:
@@ -95,7 +101,7 @@ def ztd_gamit(file_path):
     column_names_handled = handle_duplicate_columns(column_names)
 
     # Reading the data
-    data = pd.read_csv(file_path, delim_whitespace=True, skiprows=4, names=column_names_handled)
+    data = pd.read_csv(file_path, sep='\s+', skiprows=4, names=column_names_handled)
     
 
     
@@ -144,7 +150,7 @@ def ztd_arisen(file_ztd):
         df_ztd['Sec'] = df_ztd['Sec'].apply(lambda x: f'0{x}' if float(x) < 10 else str(x))
         df_ztd["datetime"] = df_ztd["Date"] + df_ztd["Hour"] + df_ztd["Min"] + df_ztd["Sec"]
         df_ztd["Epoch_datetime"] = pd.to_datetime(df_ztd['datetime'],format = '%Y-%m-%d%H%M%S.%f')
-    df_ztd["Epoch_datetime"] = df_ztd["Epoch_datetime"].dt.round('S')
+    df_ztd["Epoch_datetime"] = df_ztd["Epoch_datetime"].dt.round('s')
     df_ztd["DOY"] = df_ztd["Epoch_datetime"].dt.dayofyear + df_ztd["Hour"].astype(float)/24 + df_ztd["Min"].astype(float)/(24*60) + df_ztd["Sec"].astype(float)/(24*3600)
     df_ztd = df_ztd[(np.abs(sp.stats.zscore(df_ztd["ZTD(m)"])) < 3)]
     df_ztd = df_ztd[50:]
@@ -336,6 +342,52 @@ def plot_ztd(path_to_PPP, path_to_gamit,output_path=None):
         plt.show()
     else:
         plt.show()
+        
+def extract_rms_dd(file_path,doy):
+    """
+    Extracts data from a text file between two specified lines.
+
+    Parameters:
+    file_path (str): Path to the text file.
+    start_marker (str): The line indicating the start of data extraction.
+    end_marker (str): The line indicating the end of data extraction.
+
+    Returns:
+    pd.DataFrame: DataFrame containing the extracted data.
+    """
+    # Initialize variables to store the extracted data
+    
+    start_marker = "RMS by site and satellite (mm)"
+    end_marker = "Number of data by site and satellite"
+    
+    data_between_lines = []
+    start_collecting = False
+
+    # Read the file and process the lines
+    with open(file_path, 'r') as file:
+        for line in file:
+            if start_marker in line:
+                start_collecting = True
+            elif end_marker in line:
+                start_collecting = False
+            if start_collecting:
+                data_between_lines.append(line.strip().split())
+
+    # Remove the first line since it's the starting marker
+    if data_between_lines:
+        data_between_lines.pop(0)
+        data_between_lines.pop(-1)
+
+    df = pd.DataFrame(data_between_lines)
+        
+    df_req = df.iloc[1:-1,2:4]
+    df_req = df_req.transpose()
+    df_req.columns = df_req.iloc[0]
+    df_req = df_req.drop(df_req.index[0])
+    df_req["DOY"] = doy
+    return df_req
+
+
 def gamit_pp(file_path):
     import pandas as pd
     import datetime
@@ -386,6 +438,35 @@ def gamit_pp(file_path):
     
     df = pd.DataFrame(extracted_data_with_doy)
     return df
+def extract_post_fit_nrms(file_path):
+    with open(file_path, 'r') as file:
+        content = file.readlines()
+
+    # Find the line containing "Double difference statistics" and extract the post-fit NRMS value from the next line
+    dd_statistics_index = None
+    for i, line in enumerate(content):
+        if "Double difference statistics" in line:
+            dd_statistics_index = i
+            break
+
+    # Extract the next line which should contain the post-fit NRMS value
+    if dd_statistics_index is not None and dd_statistics_index + 1 < len(content):
+        post_fit_nrms_line1 = content[dd_statistics_index + 1]
+        post_fit_nrms_line2 = content[dd_statistics_index + 2]
+        post_fit_nrms_line3 = content[dd_statistics_index + 3]
+        post_fit_nrms_line4 = content[dd_statistics_index + 4]
+        
+        # Extract the post-fit NRMS value from the line
+        post_fit_nrms1 = post_fit_nrms_line1.split("Postfit nrms:")[1].strip()
+        post_fit_nrms2 = post_fit_nrms_line2.split("Postfit nrms:")[1].strip()
+        post_fit_nrms3 = post_fit_nrms_line3.split("Postfit nrms:")[1].strip()
+        post_fit_nrms4 = post_fit_nrms_line4.split("Postfit nrms:")[1].strip()
+              
+        return float(post_fit_nrms1),float(post_fit_nrms2),float(post_fit_nrms3),float(post_fit_nrms4)
+    else:
+        return None
+    
+
 def plot_pos_gamit(filepath_pp,output_path=None):
     df_pp = gamit_pp(filepath_pp)
     fig, ax = plt.subplots(3, 2, sharex="col", sharey="row", figsize=(16, 14), 
@@ -439,24 +520,165 @@ def plot_pos_gamit(filepath_pp,output_path=None):
         plt.show()
 
 
-
-# Example usage
-
-
-###Cycle slip
-file_path_csmp = "E:/OneDrive - IIT Kanpur/Phd Thesis/RP1/results/CSR/AGRI.xlsx"
-plot_csmp(file_path_csmp)
-
-###ZTD
-
-path_to_PPP = r"E:/OneDrive - IIT Kanpur/Phd Thesis/RP1/results/ztd_test/PPP"
-path_to_gamit = r"E:/OneDrive - IIT Kanpur/Phd Thesis/RP1/results/ztd_test/GAMIT"
-plot_ztd(path_to_PPP, path_to_gamit)
-
-### Positioning(GAMIT)
-
-filepath_pp = "E:/OneDrive - IIT Kanpur/Phd Thesis/RP1/results/GAMIT_PP/MEAN.AGRI.unk.orbit.res"
+def extract_station_name(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        for line in file:
+            if "Station name" in line:
+                return line.split(":")[1].split("_")[0].strip()
+    return None
 
 
-plot_pos_gamit(filepath_pp,output_path=None)
+# Define a function to extract the number of stations used from the file
+def extract_number_of_stations(file_path):
+    with open(file_path, "r") as file:
+        for line in file:
+            if "Number of stations used" in line:
+                return int(line.split()[4])  # Extract the number from the string
+
+
+
+
+
+
+
+
+
+def weekly_performance_plot(file_path_teqc,filepath_pp,folder_path_ztd_PPP,folder_path_ztd_GAMIT,basepath_gamit, output_path=None):
+    
+    station_name = extract_station_name(filepath_pp)
+    ##Cycle slip and multipath from teqc 
+    df_csmp = pd.read_excel(file_path_teqc)
+    df_csmp["DOY"] = df_csmp["DOY"] - df_csmp["DOY"][0]
+    
+    #GAMIT solution
+    df_pp = gamit_pp(filepath_pp)
+    
+    df_ztd = ztd_daily(folder_path_ztd_PPP, folder_path_ztd_GAMIT)
+    
+    
+    fontsize = 14
+    a4_width, a4_height = 8.27, 11.69
+    fig = plt.figure(figsize=(a4_width, a4_height), dpi=600)
+    gs = gridspec.GridSpec(8, 3, height_ratios=[1.5, 2, 0.8, 0.9, 0.9, 0.5, 1, 1], hspace=0.2)
+
+    xlim_i = df_csmp["DOY"].iloc[0] - 0.5
+    xlim_f = df_csmp["DOY"].iloc[-1] + 0.5
+
+    # First subplot (Obs Slip)
+    ax1 = fig.add_subplot(gs[0, :])
+    df_csmp.plot(x='DOY', y=["Obs_slip"], lw=2, fontsize=fontsize, grid=True, color=["#d95f02"], ax=ax1, legend=False)
+    ax1.set_ylabel('Obs/CS', color='#d95f02', fontsize=fontsize)
+    ax1.set_ylim(0, 1200)
+    ax1.set_xlim(xlim_i, xlim_f)
+    ax1.set_yticks(np.arange(0, 1300, 300))
+    ax1.tick_params(axis='y', labelcolor='#d95f02')
+    ax1.spines['bottom'].set_visible(False)
+    
+    ax2 = ax1.twinx()
+    df_csmp.plot(x='DOY', y=["mp1", "mp2"], lw=2, fontsize=fontsize, grid=True, color=["#1b9e77", "#7570b3"], ax=ax2)
+    ax2.set_ylim(0, 1)
+    ax2.set_ylabel("Multipath [m]", fontsize=fontsize)
+    ax2.set_xlim(xlim_i, xlim_f)
+    ax2.set_yticks(np.arange(0, 1.1, 0.25))
+    ax2.legend(["MP1", "MP2"], labelcolor=["#1b9e77", "#7570b3"], handletextpad=0, handlelength=0, loc='upper right', ncol=2, fontsize=fontsize+2)
+    
+    
+    # Second subplot (ZTD)
+    ax3 = fig.add_subplot(gs[1, :], sharex=ax1)
+    df_ztd['DOY_frac'] -= df_ztd['DOY_frac'][0]
+    df_ztd.plot(x='DOY_frac', y=["GAMIT", "PPP"], lw=2, fontsize=fontsize, grid=True, color=["#1b9e77", "#d95f02"], ax=ax3)
+    ax3.set_ylabel("ZTD [mm]", fontsize=fontsize)
+    
+    min_ztd = np.round((df_ztd[["GAMIT", "PPP"]].min().min() - 50) / 50) * 50
+    max_ztd = np.round((df_ztd[["GAMIT", "PPP"]].max().max() + 50) / 50) * 50
+    ax3.set_ylim(min_ztd, max_ztd)
+    ax3.yaxis.set_major_locator(MultipleLocator(50))
+    ax3.legend(labels=["GAMIT", "PPP-ARISEN"], labelcolor=["#1b9e77", "#d95f02"], handletextpad=0, handlelength=0, loc="upper right", fontsize=fontsize+2, ncol=2)
+    ax3.fill_between(df_ztd['DOY_frac'], df_ztd['GAMIT'], df_ztd['PPP'], color='#377eb8', alpha=0.3)
+    ax3.tick_params(labelbottom=False)
+    ax3.set_xlabel(" ")
+    
+    ##GPS Week 
+    
+    # GPS epoch start date
+    gps_epoch = datetime(1980, 1, 6)
+
+    # Compute GPS Week
+    gps_week  = ((df_ztd["Epoch_datetime"][0] - gps_epoch).days // 7)
+
+    df_pp["DayOfYear"] -= df_pp["DayOfYear"].iloc[0]
+    
+    for i, (var, err, label, y_lim, y_ticks) in enumerate(
+        zip(["dN", "dE", "dU"], ["ne", "ee", "ue"], ["N [mm]", "E [mm]", "U [mm]"],
+            [(-5, 5), (-5, 5), (-15, 15)], [np.arange(-5, 6, 5), np.arange(-5, 6, 5), np.arange(-15, 20, 15)])):
+
+        ax = fig.add_subplot(gs[i + 2, :], sharex=ax1)
+        ax.errorbar(df_pp["DayOfYear"], df_pp[var], yerr=df_pp[err], fmt='o', capsize=4, elinewidth=1, markersize=4, color='black', ecolor='grey')
+        ax.set_ylim(y_lim)
+        ax.set_yticks(y_ticks)
+        ax.set_ylabel(label, fontsize=fontsize)
+        ax.tick_params(axis='both', which='major', labelsize=fontsize)
+        ax.grid(True)
+        if i < 2:
+            ax.tick_params(labelbottom=False)
+            ax.set_ylabel(label, labelpad=18)
+        else:
+            ax.set_ylabel("U [mm]", fontsize=fontsize, color="#1b9e77",labelpad = 8)
+            ax.tick_params(axis='y', which='major', labelsize=fontsize, colors="#1b9e77")
+            ax.set_xlabel("Day of GPS week {}".format(gps_week), fontsize=fontsize)
+    
+    ax6 = fig.add_subplot(gs[6:, :2])
+    file_list = sorted(glob.glob(basepath_gamit + "/*.summary"))
+    f_i = int(file_list[0].split("_")[2][:3])
+    
+    f_f = int(file_list[-1].split("_")[2][:3])
+    num_stations = extract_number_of_stations(file_list[0])
+    
+    
+    df_nrms = pd.DataFrame([extract_post_fit_nrms(file) for file in file_list], columns=['Constrained Free', 'Constrained Fixed', 'Loose Free', 'Loose Fixed'])
+    boxplots2  = ax6.boxplot([df_nrms[col] for col in df_nrms.columns], labels=df_nrms.columns, flierprops=dict(marker=".", markerfacecolor="black", markersize=12))
+    for median in boxplots2['medians']:
+        median.set_color('black')
+        median.set_linewidth(2)
+    for i, column in enumerate(df_nrms.columns):
+        y_max = df_nrms[column].max()  # Get max value for positioning
+        ax6.text(i + 1, y_max + 0.0005,column.replace(" ", "\n"), ha='center', fontsize=12)
+    ax6.set_xticks([])
+    ax6.tick_params(axis='y', which='major', labelsize=fontsize)
+    ax6.set_title('Post-fit NRMS', fontsize=fontsize)
+    ax6.set_ylim(0.19, 0.22)
+    ax6.grid(True, axis="y")
+    
+    ax7 = fig.add_subplot(gs[6:, 2])
+    
+    
+    
+    df2 = pd.concat([extract_rms_dd(basepath_gamit + f"{i}G/autcln.post.sum", i) for i in range(f_i, f_f+1)], axis=0)
+    
+    
+    df2 = df2[[station_name]].replace('nan', np.nan).apply(pd.to_numeric)
+    boxplot = ax7.boxplot([df2[col] for col in df2.columns], labels=df2.columns, flierprops=dict(marker=".", markerfacecolor="black", markersize=12))
+    for median in boxplot['medians']:
+        median.set_color('black')
+        median.set_linewidth(2)
+    ax7.set_title('RMS of DD \n Post-Fit Res [mm]', fontsize=fontsize)
+    ax7.set_ylim(4, 12)
+    ax7.grid(axis="y")
+    ax7.set_xticklabels([])
+    ax7.tick_params(axis='both', which='major', labelsize=fontsize)
+    ax7.text(0.925, -1.5, num_stations,
+             transform=ax.transAxes,  # Use axis coordinates (0 to 1)
+             fontsize=fontsize,
+             verticalalignment='bottom',
+             #horizontalalignment='right',
+             bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="lightgray"))
+    plt.subplots_adjust(hspace=0.2)
+    plt.tight_layout()
+    
+    if output_path:
+        fig.savefig(output_path + "weekly_performance_agri.png", bbox_inches='tight', dpi=600)
+        plt.show()
+    else:
+        plt.show()
+    plt.close(fig)
 

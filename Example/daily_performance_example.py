@@ -22,9 +22,61 @@ def dop_df(file_path):
     df["TDOP"] = np.sqrt(df["GDOP"] ** 2 - df["PDOP"] ** 2)
     df["Epoch_datetime"] = pd.to_datetime(df['Epoch'], format='%Y/%m/%d %H:%M:%S.%f')
     return df
+def plot_nsat(file_paths, labels, colors, gs_inner, fig):
+    """
+    Plot NSAT over time using a nested GridSpec layout inside an existing figure.
 
+    Args:
+        file_paths (list of str): Paths to the input DOP data files.
+        labels (list of str): Labels for each dataset to appear in the legend.
+        colors (list of str): Colors for each dataset's plot line.
+        gs_inner (gridspec.GridSpecFromSubplotSpec): Nested GridSpec for subplot allocation.
+        fig (matplotlib.figure.Figure): The main figure object.
+    """
+    ax1 = fig.add_subplot(gs_inner[0, 0])
+    ax2 = fig.add_subplot(gs_inner[1, 0], sharex=ax1)
 
-def plot_nsat(file_paths, labels, colors, output_path=None):
+    date_form = DateFormatter("%H")
+    linecolor =colors
+    for file_path, label, color in zip(file_paths, labels, colors):
+        df = dop_df(file_path)
+        date_str = df["Epoch"].iloc[15].split(" ")[0]
+        date_obj = datetime.datetime.strptime(date_str, "%Y/%m/%d")
+        formatted_date = date_obj.strftime("UTC %d %b %Y")
+
+        if label == "G+R+E+C":
+            ax1.plot(df["Epoch_datetime"], df["NSAT"], color=color, label=label, lw=1.5)
+        else:
+            ax2.plot(df["Epoch_datetime"], df["NSAT"], color=color, label=label, lw=1.5)
+        
+    # Top subplot (ax1) settings
+    ax1.xaxis.set_major_formatter(date_form)
+    ax1.grid(True)
+    ax1.tick_params(axis='both', which='major', labelsize=12)
+    ax1.set_yticks(np.arange(24, 57, 8))
+    ax1.set_ylim(16, 56)
+    ax1.set_xlabel(" ")
+    ax1.set_xticklabels([])
+    ax1.set_ylabel("NSAT", fontsize=12)
+    ax1.legend(ncol=1, loc="upper right", fontsize=14,labelcolor = linecolor[-1],handletextpad=0,handlelength=0)
+    
+    
+    ax1.set_xticklabels([])
+    ax1.tick_params(labelbottom=False)
+    
+    # Bottom subplot (ax2) settings
+    ax2.xaxis.set_major_formatter(date_form)
+    ax2.grid(True)
+    ax2.tick_params(axis='both', which='major', labelsize=12)
+    ax2.set_yticks(np.arange(0, 17, 4))
+    ax2.set_xlabel(formatted_date, fontsize=12)
+    ax2.set_ylabel("NSAT", fontsize=12)
+    ax2.axhline(y=4, color="black", linestyle="--", linewidth=2)
+    ax2.legend(ncol=4, loc="upper right", fontsize=14,labelcolor = linecolor,handletextpad=0,handlelength=0)
+    ax2.text(ax2.get_xticks()[2], 3, "NSAT threshold", color="black", fontsize=12, verticalalignment="top")
+    return ax1, ax2
+'''
+def plot_nsat(file_paths, labels, colors,ax):
     """
     Plot the number of satellites (NSAT) over time for multiple GNSS systems.
 
@@ -34,24 +86,40 @@ def plot_nsat(file_paths, labels, colors, output_path=None):
         colors (list of str): Colors for each dataset's plot line.
         output_path (str, optional): Path to save the output plot. If None, the plot is displayed.
     """
+
     date_form = DateFormatter("%H")
-    fig, ax = plt.subplots(figsize=(9, 12), dpi=600)
-    
+    fig, axes = plt.subplots(2,1,figsize=(9, 12), dpi=600,gridspec_kw = {'height_ratios':[1,2]},sharex = True)
+    ax1, ax2 = axes
     for file_path, label, color in zip(file_paths, labels, colors):
         df = dop_df(file_path)
         date_str = df["Epoch"].iloc[15].split(" ")[0]
         date_obj = datetime.datetime.strptime(date_str, "%Y/%m/%d")
         formatted_date = date_obj.strftime("UTC %d %b %Y")
         
-        ax.plot(df["Epoch_datetime"], df["NSAT"], color=color, label=label, lw=3)
+        if label == "G+R+E+C":
+            ax1.plot(df["Epoch_datetime"],df["NSAT"],color = color, label = label,lw = 3)
+        else:
+            ax2.plot(df["Epoch_datetime"], df["NSAT"], color=color, label=label, lw=3)
     
-    ax.xaxis.set_major_formatter(date_form)
-    ax.grid(True)
-    ax.tick_params(axis='both', which='major', labelsize=24)
-    ax.set_yticks(np.arange(0, 55, 5))
-    ax.set_xlabel(formatted_date, fontsize=24)
-    ax.set_ylabel("Number of Satellites", fontsize=24)
-    ax.legend(ncol=2, loc="upper right", fontsize=18)
+    ax1.xaxis.set_major_formatter(date_form)
+    ax1.grid(True)
+    ax1.tick_params(axis='both', which='major', labelsize=24)
+    ax1.set_yticks(np.arange(16,57,8))
+    ax1.set_ylim(16,56)
+    ax1.set_xlabel(" ",)
+    ax1.set_ylabel("NSAT", fontsize=24)
+    ax1.legend(loc="upper right", fontsize=24)
+    
+    ax2.xaxis.set_major_formatter(date_form)
+    ax2.grid(True)
+    ax2.tick_params(axis='both', which='major', labelsize=24)
+    ax2.set_yticks(np.arange(0,17,4))
+    ax2.set_xlabel(formatted_date, fontsize=24)
+    ax2.set_ylabel("NSAT", fontsize=24)
+    ax2.axhline(y=4, color="black", linestyle="--", linewidth=2, label="NSAT Threshold")
+    ax2.legend(ncol=2,loc="upper right", fontsize=24)
+    
+    
     fig.tight_layout()
 
     if output_path:
@@ -59,7 +127,7 @@ def plot_nsat(file_paths, labels, colors, output_path=None):
     else:
         plt.show()
     
-    return None
+    return ax
 
 def plot_dop(file_paths, labels, colors, output_path=None):
     """
@@ -102,6 +170,67 @@ def plot_dop(file_paths, labels, colors, output_path=None):
         plt.show()
 
     return None
+'''
+def plot_dop(file_paths, labels, colors, gs_inner, fig):
+    """
+    Plot DOP components (GDOP, PDOP, HDOP, VDOP, TDOP) for multiple GNSS systems.
+
+    Args:
+        file_paths (list of str): Paths to the input DOP data files.
+        labels (list of str): Labels for the GNSS systems.
+        colors (list of str): Colors for DOP components.
+        gs_inner (gridspec.GridSpecFromSubplotSpec): Nested GridSpec for subplot allocation.
+        fig (matplotlib.figure.Figure): The main figure object.
+    """
+    date_form = DateFormatter("%H")
+
+    # Fix: Initialize axes properly before using sharex
+    axes = []
+    for i in range(5):
+        if i == 0:
+            ax = fig.add_subplot(gs_inner[i, 0])
+        else:
+            ax = fig.add_subplot(gs_inner[i, 0], sharex=axes[0])  # Share x-axis with first subplot
+        axes.append(ax)
+
+    dop_data = [dop_df(path) for path in file_paths]
+    
+    for i, (df, label) in enumerate(zip(dop_data[::-1], labels[::-1])):
+        axes[i].plot(df["Epoch_datetime"], df["GDOP"], color=colors[0], label="GDOP")
+        axes[i].plot(df["Epoch_datetime"], df["PDOP"], color=colors[1], label="PDOP")
+        axes[i].plot(df["Epoch_datetime"], df["HDOP"], color=colors[2], label="HDOP")
+        axes[i].plot(df["Epoch_datetime"], df["VDOP"], color=colors[3], label="VDOP")
+        axes[i].plot(df["Epoch_datetime"], df["TDOP"], color=colors[4], label="TDOP")
+
+        axes[i].xaxis.set_major_formatter(date_form)
+        axes[i].grid(True)
+        axes[i].set_ylim([0, 6])
+        axes[i].tick_params(axis='both', which='major', labelsize=12)
+        axes[i].set_yticks(np.arange(0, 7, 2))
+        axes[i].set_ylabel(label, fontsize=12)
+        linecolor = colors
+        if i == 0:
+            axes[i].legend(labelcolor = linecolor,handletextpad=0,handlelength=0,ncol=5, bbox_to_anchor=(1, 1.1), loc="upper right", fontsize=14)
+        if i < 4:
+            axes[i].set_xticklabels([])
+            axes[i].tick_params(labelbottom=False)
+            
+        if i < 4:
+            axes[i].set_yticklabels([])
+            axes[i].tick_params(labelbottom=False)
+    # X-axis label only for the last subplot
+    date_str = df["Epoch"].iloc[15].split(" ")[0]
+    date_obj = datetime.datetime.strptime(date_str, "%Y/%m/%d")
+    formatted_date = date_obj.strftime("UTC %d %b %Y")
+    axes[-1].set_xlabel(formatted_date, fontsize=12)
+    
+          # Remove tick labels
+            #axes[i].xaxis.set_visible(False)  # Hide x-axis completely
+
+
+    return axes
+
+
 
 def cart2ellipsoid(arr_x):
     
@@ -591,7 +720,7 @@ def obsdata_snr(file_obs,file_snr):
     df_obs["Azimuth_r"] = df_obs.Azimuth*dtr    
     return df_obs
 
-
+'''
 def plot_cnr(file_obs, file_snr,output_path=None,constellations=["G", "R", "E", "C"], cmap="plasma", snr_min=10, snr_max=55):
     """
     Generate polar scatter plots of CNR values for specified constellations from observation and SNR files.
@@ -654,7 +783,85 @@ def plot_cnr(file_obs, file_snr,output_path=None,constellations=["G", "R", "E", 
         plt.show()
     else:
         plt.show()
+'''
 
+def plot_cnr(file_obs, file_snr, gs_inner, fig, constellations=["G", "R", "E", "C"], cmap="plasma", snr_min=10, snr_max=55):
+    """
+    Generate horizontal polar scatter plots of CNR values for specified constellations.
+
+    Parameters:
+    -----------
+    file_obs : str
+        File path of the observation data (RINEX file).
+    file_snr : str
+        File path of the SNR data (from RTKLIB or similar).
+    gs_inner : gridspec.GridSpecFromSubplotSpec
+        Nested GridSpec for subplot allocation.
+    fig : matplotlib.figure.Figure
+        The main figure object.
+    constellations : list, optional
+        List of constellations to plot (default ["G", "R", "E", "C"]).
+    cmap : str, optional
+        Colormap for the SNR values (default "plasma").
+    snr_min : int, optional
+        Minimum SNR value for the colormap (default 10).
+    snr_max : int, optional
+        Maximum SNR value for the colormap (default 55).
+    """
+
+    # Process observation and SNR data
+    df_obs = obsdata_snr(file_obs, file_snr)
+    df_obs["Azimuth_r"] = df_obs.Azimuth * (np.pi / 180)  # Convert azimuth to radians
+    df_obs["Elev_Plot"] = 90 - df_obs.Elevation           # Convert elevation to polar plot scale
+
+    # Initialize axes list
+    axes = []
+
+    for idx, constellation in enumerate(constellations):
+        ax = fig.add_subplot(gs_inner[0, idx], projection="polar")  # Create horizontal subplots
+        axes.append(ax)
+
+        df_constellation = df_obs[df_obs["constellation"] == constellation]
+        if df_constellation.empty:
+            continue
+
+        val = df_constellation["SNR"].values
+        r = df_constellation['Elev_Plot'].values
+        theta = df_constellation['Azimuth_r'].values
+
+        scatter = ax.scatter(theta, r, c=val, cmap=cmap, s=1.5, vmin=snr_min, vmax=snr_max)
+        ax.set_rmax(90)
+        ax.set_yticklabels([])
+        ax.grid(True)
+        ax.set_rorigin(0)
+        ax.set_theta_zero_location("N")
+        ax.set_theta_direction(-1)
+        ax.set_rticks([0, 15, 30, 45, 60, 75, 90])
+        ax.set_title(constellation, fontsize=14,y = 0.85,color="black", bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
+        
+        if constellation != "R":
+            ax.set_xticklabels([])  # Remove tick labels
+            ax.tick_params(labelbottom=False)
+        if constellation == "G":  
+            ax.text(0, 1.3 * ax.get_rmax(), r"L1 $\mathrm{C/N_0\ [dBHz]}$", fontsize=14, ha="center",bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
+
+        if constellation == "C":
+            ax.text(0,-15,'75')
+            ax.text(0,-30,'60')
+            ax.text(0,-45,'45')
+            ax.text(0,-60,'30')
+            ax.text(0,-75,'15')
+        
+    # Add a horizontal colorbar below the plots
+    cbar_ax = fig.add_axes([0.02, 0.39,0.015, 0.19])  # left bottom width height 
+    cbar = fig.colorbar(scatter, cax=cbar_ax, orientation='vertical', ticks=np.arange(snr_min, snr_max + 5, 5))
+    cbar.ax.tick_params(labelsize=12)
+    #cbar.ax.set_ylabel("L1 " + r"$\mathrm{C/N_0(db-Hz)}$", fontsize=12, labelpad=5)
+
+    return axes
+
+
+'''
 def plot_multipath(file_obs,file_snr,outputh_path = None,fontsize=24, vmax=1, vmin=-1):
     
     """
@@ -710,6 +917,8 @@ def plot_multipath(file_obs,file_snr,outputh_path = None,fontsize=24, vmax=1, vm
         plt.show()
 
     return None
+
+'''
 def dph_data(file_path):
     Data = []
     column_names = [
@@ -742,12 +951,14 @@ def dph_data(file_path):
             df["Azimuth"] *= dtr
             df["Elev1"] = 90 - df["Elev"]
     return df
+
+'''
 def plot_lcphase(basepath,output_path=None):
     PRN = [f'PRN{i:02d}' for i in range(1, 33)]
     df_iitk = pd.DataFrame()
     
     for sat in PRN:
-        file_path_i = f"{basepath}/DPH.IITK.{sat}"
+        file_path_i = f"{basepath}/DPH.AGRI.{sat}"
         df = dph_data(file_path_i)
         df_iitk = pd.concat([df_iitk, df], ignore_index=True)
     
@@ -760,8 +971,8 @@ def plot_lcphase(basepath,output_path=None):
     r1_g = df_iitk['Elev1'].values
     theta1_g = df_iitk['Azimuth'].values
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10), dpi=600)
-    fontsize = 24
+    fig ,ax = plt.subplots(1, 2, figsize=(20, 10), dpi=600)
+    fontsize = 12
     
     ax1.scatter(df_iitk["Elev"], df_iitk["LC cyc"], c='black', s=1, edgecolors='black')
     ax1.set_xlabel('Elevation [deg]', fontsize=fontsize)
@@ -791,8 +1002,8 @@ def plot_lcphase(basepath,output_path=None):
     cbar.ax.tick_params(labelsize=24)
     cbar.ax.set_ylabel("LC Phase residual [mm]", fontsize=fontsize)
     
-    plt.tight_layout(rect=[0, 0, 0.9, 1])
-    
+    #plt.tight_layout(rect=[0, 0, 0.9, 1])
+    plt.tight_layout()
     if output_path:
         plt.savefig(output_path+"dph.png")
         plt.show()
@@ -800,6 +1011,49 @@ def plot_lcphase(basepath,output_path=None):
         plt.show()
     
     return None
+'''
+def plot_lcphase(basepath, ax, fig):
+    """
+    Function to plot LC Phase residuals inside a given axis.
+
+    Parameters:
+    -----------
+    basepath : str
+        Base path where DPH.AGRI.PRNi files are located.
+    ax : matplotlib axis
+        Axis to plot on.
+    fig : matplotlib.figure.Figure
+        The main figure object.
+    fontsize : int, optional
+        Font size for labels (default is 12).
+    """
+    fontsize=12
+    PRN = [f'PRN{i:02d}' for i in range(1, 33)]
+    df_iitk = pd.DataFrame()
+    
+    for sat in PRN:
+        file_path_i = f"{basepath}/DPH.AGRI.{sat}"
+        df = dph_data(file_path_i)
+        df_iitk = pd.concat([df_iitk, df], ignore_index=True)
+    
+    df_iitk = df_iitk[df_iitk['LC cyc'] != 9999]
+    df_iitk["LC cyc"] *= 0.19 * 10**3
+    df_iitk = df_iitk[df_iitk["Elev"].between(10, 90)]
+    df_iitk = df_iitk[df_iitk["LC cyc"].between(-100, 100)]
+
+    # Scatter plot
+    ax.scatter(df_iitk["Elev"], df_iitk["LC cyc"], c='black', s=1, edgecolors='black')
+    ax.set_xlabel('Elevation [deg]', fontsize=fontsize)
+    #ax.set_ylabel('LC Phase residual [mm]', fontsize=fontsize)
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
+    ax.set_ylim(-100, 100)
+    ax.set_xlim(0, 90)
+    ax.grid(True)
+    ax.set_ylabel(None)
+    # Adjust subplot position to remove left padding
+    box = ax.get_position()
+    ax.set_position([box.x0 - 0.05, box.y0, box.width * 1.1, box.height])  # Shift left and expand
+
 def daily_performance(files_dop,file_obs,file_snr,basepath_gamit,colors, labels,outpath_path=None):
     plot_nsat(files_dop, labels, colors,output_path) 
     plot_dop(files_dop, labels, colors,output_path)
@@ -808,49 +1062,170 @@ def daily_performance(files_dop,file_obs,file_snr,basepath_gamit,colors, labels,
     plot_lcphase(basepath_gamit)
     return None
 
+def plot_multipath(file_obs, file_snr, ax, fig):
+    """
+    Function to plot L1 Pseudorange Multipath as a polar plot inside a given axis.
+    
+    Parameters:
+    -----------
+    file_obs : str
+        File path of the observation data (RINEX file).
+    file_snr : str
+        File path of the SNR data (from RTKLIB or similar).
+    ax : matplotlib axis
+        Axis to plot on.
+    fig : matplotlib.figure.Figure
+        The main figure object.
+    fontsize : int, optional
+        Font size for labels (default is 24).
+    vmax : float, optional
+        Maximum colorbar limit (default is 1).
+    vmin : float, optional
+        Minimum colorbar limit (default is -1).
+    """
+    fontsize=12
+    vmax=1
+    vmin=-1
+    df_obs2 = obsdata_snr(file_obs, file_snr)
+    df_obs2_g = df_obs2[df_obs2["constellation"] == "G"]
+    df_look = df_obs2_g[["Epoch_datetime", 'Elevation', 'Azimuth_r', 'Elev_Plot', "MP"]]
+
+    cmap = cm.get_cmap('RdGy', 8)
+
+    val = df_look["MP"].values
+    r = df_look['Elev_Plot'].values
+    theta = df_look['Azimuth_r'].values
+
+    sc = ax.scatter(theta, r, c=val, cmap=cmap, s=10, vmin=vmin, vmax=vmax)
+    ax.set_rmax(90)
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
+    ax.set_rlabel_position(0)
+    ax.grid(True)
+    ax.set_rorigin(0)
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
+    ax.set_rticks([0, 15, 30, 45, 60, 75, 90])
+
+    # Add text labels for elevation rings
+    for i, text in enumerate(["75", "60", "45", "30", "15"]):
+        ax.text(0, (i+1)*15, text, fontsize=fontsize, ha='center', va='center')
+
+    ax.tick_params(axis='x', which='major', labelsize=fontsize)
+
+    # Move colorbar to the left side
+    cbar_ax = fig.add_axes([0.02, 0.038, 0.015, 0.275])  # Left, Bottom, Width, Height
+    cbar = fig.colorbar(sc, cax=cbar_ax, orientation='vertical', ticks=np.arange(vmin, vmax + 0.1, 0.25))
+    cbar.ax.tick_params(labelsize=fontsize)
+    #cbar.ax.set_ylabel("L1 Pseudorange Multipath [m]", fontsize=fontsize, labelpad=10)
+
+    # Adjust subplot position to remove left padding
+    box = ax.get_position()
+    ax.set_position([box.x0 - 0.05, box.y0, box.width * 1.1, box.height])  # Shift left and expand
+    ax.text(0, 1.2 * ax.get_rmax(), "GPS L1 Pseudorange \n Multipath [m]", fontsize=12, ha="center",bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
+
+import matplotlib.gridspec as gridspec
+import numpy as np
+import matplotlib.pyplot as plt
+
+# A4 size in inches
+a4_width, a4_height = 8.27, 11.69  
+fig = plt.figure(figsize=(a4_width, a4_height), dpi=600)
+
+# Define GridSpec layout with custom row heights
+gs = gridspec.GridSpec(3, 6, height_ratios=[1.5, 1, 1.1])  # Adjusted height ratios
+
+# Allocate `2,1` space inside ax1 for plot_nsat
+gs_inner_nsat = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[0, 0:2], height_ratios=[1, 2], hspace=0)
+
+# Allocate `5,1` space inside ax2 for plot_dop
+gs_inner_dop = gridspec.GridSpecFromSubplotSpec(5, 1, subplot_spec=gs[0, 2:], hspace=0.05)
+
+# Allocate `4,1` space inside ax3 for plot_cnr
+gs_inner_cnr = gridspec.GridSpecFromSubplotSpec(1, len(["G", "R", "E", "C"]), subplot_spec=gs[1, :], wspace=0.05,hspace = 0)
+
+# Pass nested GridSpec to plot_nsat
+plot_nsat(files_dop, labels, colors, gs_inner_nsat, fig)
+
+# Pass nested GridSpec to plot_dop
+plot_dop(files_dop, labels, colors, gs_inner_dop, fig)
+
+# Pass nested GridSpec to plot_cnr
+plot_cnr(file_obs, file_snr, gs_inner_cnr, fig)
+
+# Allocate `ax4` for plot_multipath and `ax5` for plot_lcphase
+ax4 = fig.add_subplot(gs[2, 0:3], projection="polar")  # Spanning first 3 columns
+ax5 = fig.add_subplot(gs[2, 3:])  # Remaining columns for lcphase
+
+# Plot Multipath Data in ax4
+plot_multipath(file_obs, file_snr, ax4, fig)
+
+# Plot LC Phase Data in ax5
+plot_lcphase(basepath_gamit, ax5, fig)
+
+# Adjust ax5 position: shift left & increase width
+
+
+ax5.set_title(
+    "LC Phase Residuals [mm]", 
+    fontsize=14, 
+    color="black", 
+    pad=15,  # Space between title and plot
+    y=1.05,  # Moves title slightly up
+    bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3')
+)
+# Adjust ax4 (Multipath) to make it larger
+
+
+# Get current position of ax5
+
+
+
+#box = ax5.get_position()
+#ax5.set_position([box.x0 - 0.07, box.y0, box.width*1.2, box.height])
+
+# Adjust layout to fit A4
+fig.suptitle("Station : AGRI Receiver : Ublox ZED-F9P Antenna : Survey Grade")
+plt.tight_layout()
+plt.show()
+fig.savefig(output_path+"daily_perfromance_agri.png",dpi = 600)
 
 #%%
 #Example 
 
 #inputs 
 files_dop = [
-    "D:/c-GNSS/Example/RTKLIB/agri_dop_gps.txt",
-    "D:/c-GNSS/Example/RTKLIB/agri_dop_glo.txt",
-    "D:/c-GNSS/Example/RTKLIB/agri_dop_gal.txt",
-    "D:/c-GNSS/Example/RTKLIB/agri_dop_bds.txt",
-    "D:/c-GNSS/Example/RTKLIB/agri_dop.txt",
+    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop_gps.txt",
+    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop_glo.txt",
+    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop_gal.txt",
+    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop_bds.txt",
+    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop.txt",
 ]
 
-file_obs = "D:/c-GNSS/Example/Observation File/AGRI2880.22O"
-file_snr = "D:/c-GNSS/Example/RTKLIB/agri_snr.txt"
+file_obs = "D:/c-GNSS/Example/AGRI/Observation File/AGRI2880.22O"
+file_snr = "D:/c-GNSS/Example/AGRI/RTKLIB/agri_snr.txt"
 
-labels = ["GPS", "GLONASS", "Galileo", "Beidou", "G+R+E+C"]
+labels = ["G", "R", "E", "C", "G+R+E+C"]
 colors = ["#e41a1c", "#4daf4a", "#984ea3", "#ff7f00", "#377eb8"]
 
+
+
 #Call function Individually
-output_path = r"D:/c-GNSS/Example/Output/"  
+output_path = r"D:/c-GNSS/Example/AGRI/Output/"  
 # make sure to use backword slash at the end of path
-
-
-plot_nsat(files_dop, labels, colors,output_path)  
-
-
-plot_dop(files_dop, labels, colors,output_path)
-
-
-plot_cnr(file_obs, file_snr,output_path)
-
-plot_multipath(file_obs, file_snr,output_path)
-
-plot_lcphase(basepath_gamit,output_path)
-#%%
-
-
-
-
+basepath_gamit = r"D:/c-GNSS/Example/AGRI/GAMIT/289G/" 
 
 #%%
-#Example Combined 
+
+
+
+
+
+
+
+
+
+
 
 
 
