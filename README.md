@@ -21,6 +21,8 @@ Characterization of a GNSS station
 1. **Cycle slip ratio and Multipath plot**: Visualize the daily cycle slip ratio and moving average multipath over the week.
 2. **ZTD Plot**: Visualize the zenith tropospheric delay estimation from PPP-ARISEN and GAMIT to analyse environmental variable performance.
 3. **Positioning Plot**: Visualize the post-processed positioning(repeatability) of a station in a baseline processing using GAMIT.
+4. **Post-Fit NRMS Plot**: Visualize the GAMIT processed daily post-fit NRMS of the baseline network  as a boxplot.
+5. **RMS of one-way Double Difference residuals**: Visualize the GAMIT processed daily RMS of one-way Double Difference residuals of the station of interest as a boxplot.
 
 
 ## Installation
