@@ -4,8 +4,11 @@ import matplotlib.pyplot as plt
 import datetime
 from matplotlib.dates import DateFormatter
 from pylab import*
+import matplotlib.gridspec as gridspec
 c = 299792458
 dtr = np.pi/180
+
+
 
 def dop_df(file_path):
     """
@@ -1012,7 +1015,7 @@ def plot_lcphase(basepath,output_path=None):
     
     return None
 '''
-def plot_lcphase(basepath, ax, fig):
+def plot_lcphase(basepath,station_name, ax, fig):
     """
     Function to plot LC Phase residuals inside a given axis.
 
@@ -1032,7 +1035,7 @@ def plot_lcphase(basepath, ax, fig):
     df_iitk = pd.DataFrame()
     
     for sat in PRN:
-        file_path_i = f"{basepath}/DPH.AGRI.{sat}"
+        file_path_i = f"{basepath}/DPH."+station_name+f".{sat}"
         df = dph_data(file_path_i)
         df_iitk = pd.concat([df_iitk, df], ignore_index=True)
     
@@ -1053,6 +1056,14 @@ def plot_lcphase(basepath, ax, fig):
     # Adjust subplot position to remove left padding
     box = ax.get_position()
     ax.set_position([box.x0 - 0.05, box.y0, box.width * 1.1, box.height])  # Shift left and expand
+    ax.set_title(
+        "LC Phase Residuals [mm]", 
+        fontsize=fontsize, 
+        color="black", 
+        pad=15,  # Space between title and plot
+        y=1.05,  # Moves title slightly up
+        bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3')
+        )
 
 def daily_performance(files_dop,file_obs,file_snr,basepath_gamit,colors, labels,outpath_path=None):
     plot_nsat(files_dop, labels, colors,output_path) 
@@ -1124,96 +1135,54 @@ def plot_multipath(file_obs, file_snr, ax, fig):
     ax.set_position([box.x0 - 0.05, box.y0, box.width * 1.1, box.height])  # Shift left and expand
     ax.text(0, 1.2 * ax.get_rmax(), "GPS L1 Pseudorange \n Multipath [m]", fontsize=12, ha="center",bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
 
-import matplotlib.gridspec as gridspec
-import numpy as np
-import matplotlib.pyplot as plt
 
-# A4 size in inches
-a4_width, a4_height = 8.27, 11.69  
-fig = plt.figure(figsize=(a4_width, a4_height), dpi=600)
+def daily_performance_plot(file_obs,files_dop,file_snr,gamit_path,outputh_path = None):
+    # A4 size in inches
+    station_name = file_obs.split("/")[-1][:4]
+    labels = ["G", "R", "E", "C", "G+R+E+C"]
+    colors = ["#e41a1c", "#4daf4a", "#984ea3", "#ff7f00", "#377eb8"]
+    
+    a4_width, a4_height = 8.27, 11.69  
+    fig = plt.figure(figsize=(a4_width, a4_height), dpi=600)
 
-# Define GridSpec layout with custom row heights
-gs = gridspec.GridSpec(3, 6, height_ratios=[1.5, 1, 1.1])  # Adjusted height ratios
+    # Define GridSpec layout with custom row heights
+    gs = gridspec.GridSpec(3, 6, height_ratios=[1.5, 1, 1.1])  # Adjusted height ratios
+    
+    # Allocate `2,1` space inside ax1 for plot_nsat
+    gs_inner_nsat = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[0, 0:2], height_ratios=[1, 2], hspace=0)
 
-# Allocate `2,1` space inside ax1 for plot_nsat
-gs_inner_nsat = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[0, 0:2], height_ratios=[1, 2], hspace=0)
+    # Allocate `5,1` space inside ax2 for plot_dop
+    gs_inner_dop = gridspec.GridSpecFromSubplotSpec(5, 1, subplot_spec=gs[0, 2:], hspace=0.05)
 
-# Allocate `5,1` space inside ax2 for plot_dop
-gs_inner_dop = gridspec.GridSpecFromSubplotSpec(5, 1, subplot_spec=gs[0, 2:], hspace=0.05)
+    # Allocate `4,1` space inside ax3 for plot_cnr
+    gs_inner_cnr = gridspec.GridSpecFromSubplotSpec(1, len(["G", "R", "E", "C"]), subplot_spec=gs[1, :], wspace=0.05,hspace = 0)
 
-# Allocate `4,1` space inside ax3 for plot_cnr
-gs_inner_cnr = gridspec.GridSpecFromSubplotSpec(1, len(["G", "R", "E", "C"]), subplot_spec=gs[1, :], wspace=0.05,hspace = 0)
+    # Pass nested GridSpec to plot_nsat
+    plot_nsat(files_dop, labels, colors, gs_inner_nsat, fig)
 
-# Pass nested GridSpec to plot_nsat
-plot_nsat(files_dop, labels, colors, gs_inner_nsat, fig)
+    # Pass nested GridSpec to plot_dop
+    plot_dop(files_dop, labels, colors, gs_inner_dop, fig)
 
-# Pass nested GridSpec to plot_dop
-plot_dop(files_dop, labels, colors, gs_inner_dop, fig)
+    # Pass nested GridSpec to plot_cnr
+    plot_cnr(file_obs, file_snr, gs_inner_cnr, fig)
 
-# Pass nested GridSpec to plot_cnr
-plot_cnr(file_obs, file_snr, gs_inner_cnr, fig)
+    # Allocate `ax4` for plot_multipath and `ax5` for plot_lcphase
+    ax4 = fig.add_subplot(gs[2, 0:3], projection="polar")  # Spanning first 3 columns
+    ax5 = fig.add_subplot(gs[2, 3:])  # Remaining columns for lcphase
 
-# Allocate `ax4` for plot_multipath and `ax5` for plot_lcphase
-ax4 = fig.add_subplot(gs[2, 0:3], projection="polar")  # Spanning first 3 columns
-ax5 = fig.add_subplot(gs[2, 3:])  # Remaining columns for lcphase
+    # Plot Multipath Data in ax4
+    plot_multipath(file_obs, file_snr, ax4, fig)
 
-# Plot Multipath Data in ax4
-plot_multipath(file_obs, file_snr, ax4, fig)
-
-# Plot LC Phase Data in ax5
-plot_lcphase(basepath_gamit, ax5, fig)
-
-# Adjust ax5 position: shift left & increase width
-
-
-ax5.set_title(
-    "LC Phase Residuals [mm]", 
-    fontsize=14, 
-    color="black", 
-    pad=15,  # Space between title and plot
-    y=1.05,  # Moves title slightly up
-    bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3')
-)
-# Adjust ax4 (Multipath) to make it larger
-
-
-# Get current position of ax5
-
-
-
-#box = ax5.get_position()
-#ax5.set_position([box.x0 - 0.07, box.y0, box.width*1.2, box.height])
-
-# Adjust layout to fit A4
-fig.suptitle("Station : AGRI Receiver : Ublox ZED-F9P Antenna : Survey Grade")
-plt.tight_layout()
-plt.show()
-fig.savefig(output_path+"daily_perfromance_agri.png",dpi = 600)
-
+    # Plot LC Phase Data in ax5
+    plot_lcphase(gamit_path,station_name,ax5, fig)
+    plt.tight_layout()
+    plt.show()
+    fig.savefig(output_path+station_name.lower()+"_daily_perfromance.png",dpi = 600)
 #%%
 #Example 
 
 #inputs 
-files_dop = [
-    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop_gps.txt",
-    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop_glo.txt",
-    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop_gal.txt",
-    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop_bds.txt",
-    "D:/c-GNSS/Example/AGRI/RTKLIB/agri_dop.txt",
-]
 
-file_obs = "D:/c-GNSS/Example/AGRI/Observation File/AGRI2880.22O"
-file_snr = "D:/c-GNSS/Example/AGRI/RTKLIB/agri_snr.txt"
-
-labels = ["G", "R", "E", "C", "G+R+E+C"]
-colors = ["#e41a1c", "#4daf4a", "#984ea3", "#ff7f00", "#377eb8"]
-
-
-
-#Call function Individually
-output_path = r"D:/c-GNSS/Example/AGRI/Output/"  
-# make sure to use backword slash at the end of path
-basepath_gamit = r"D:/c-GNSS/Example/AGRI/GAMIT/289G/" 
 
 #%%
 
