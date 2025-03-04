@@ -116,7 +116,7 @@ def ztd_gamit(file_path):
     column_names_handled = handle_duplicate_columns(column_names)
 
     # Reading the data
-    data = pd.read_csv(file_path, sep='\s+', skiprows=4, names=column_names_handled)
+    data = pd.read_csv(file_path, sep=r'\s+', skiprows=4, names=column_names_handled)
     
 
     
@@ -593,7 +593,7 @@ def weekly_performance_plot(file_path_teqc,filepath_pp,folder_path_ztd_PPP,folde
     ##GPS Week 
     
     # GPS epoch start date
-    gps_epoch = datetime(1980, 1, 6)
+    gps_epoch = datetime.datetime(1980, 1, 6)
 
     # Compute GPS Week
     gps_week  = ((df_ztd["Epoch_datetime"][0] - gps_epoch).days // 7)
@@ -668,7 +668,7 @@ def weekly_performance_plot(file_path_teqc,filepath_pp,folder_path_ztd_PPP,folde
     plt.tight_layout()
     
     if output_path:
-        fig.savefig(output_path + "weekly_performance_agri.png", bbox_inches='tight', dpi=600)
+        fig.savefig(output_path +station_name.lower()+ "weekly_performance.png", bbox_inches='tight', dpi=600)
         plt.show()
     else:
         plt.show()
@@ -686,7 +686,9 @@ def dop_df(file_path):
     """
     df = pd.read_fwf(file_path)
     df.columns = ['Epoch', 'NSAT', 'GDOP', 'PDOP', 'HDOP', 'VDOP', 'EL']
-    df["TDOP"] = np.sqrt(df["GDOP"] ** 2 - df["PDOP"] ** 2)
+    df["TDOP"] = np.where(df["GDOP"] ** 2 >= df["PDOP"] ** 2, 
+                      np.sqrt(df["GDOP"] ** 2 - df["PDOP"] ** 2), 
+                      np.nan)
     df["Epoch_datetime"] = pd.to_datetime(df['Epoch'], format='%Y/%m/%d %H:%M:%S.%f')
     return df
 def plot_nsat(file_paths, labels, colors, gs_inner, fig):
@@ -1519,7 +1521,7 @@ def plot_multipath(file_obs, file_snr, ax, fig):
     ax.text(0, 1.2 * ax.get_rmax(), "GPS L1 Pseudorange \n Multipath [m]", fontsize=12, ha="center",bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
 
 
-def daily_performance_plot(file_obs,files_dop,file_snr,gamit_path,outputh_path = None):
+def daily_performance_plot(file_obs,files_dop,file_snr,gamit_path,output_path = None):
     # A4 size in inches
     station_name = file_obs.split("/")[-1][:4]
     labels = ["G", "R", "E", "C", "G+R+E+C"]
@@ -1560,7 +1562,12 @@ def daily_performance_plot(file_obs,files_dop,file_snr,gamit_path,outputh_path =
     plot_lcphase(gamit_path,station_name,ax5, fig)
     plt.tight_layout()
     plt.show()
-    fig.savefig(output_path+station_name.lower()+"_daily_perfromance.png",dpi = 600)
+    
+    if output_path:
+        fig.savefig(output_path+station_name.lower()+"_daily_perfromance.png",dpi = 600)
+        plt.show()
+    else:
+        plt.show()
 
 
 
