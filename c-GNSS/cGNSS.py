@@ -668,7 +668,7 @@ def weekly_performance_plot(file_path_teqc,filepath_pp,folder_path_ztd_PPP,folde
     plt.tight_layout()
     
     if output_path:
-        fig.savefig(output_path +station_name.lower()+ "weekly_performance.png", bbox_inches='tight', dpi=600)
+        fig.savefig(output_path +station_name.lower()+ "_weekly_performance.png", bbox_inches='tight', dpi=600)
         plt.show()
     else:
         plt.show()
@@ -742,7 +742,7 @@ def plot_nsat(file_paths, labels, colors, gs_inner, fig):
     ax2.set_ylabel("NSAT", fontsize=12)
     ax2.axhline(y=4, color="black", linestyle="--", linewidth=2)
     ax2.legend(ncol=4, loc="upper right", fontsize=14,labelcolor = linecolor,handletextpad=0,handlelength=0)
-    ax2.text(ax2.get_xticks()[2], 3, "NSAT threshold", color="black", fontsize=12, verticalalignment="top")
+    ax2.text(ax2.get_xticks()[2], 2, "NSAT threshold", color="black", fontsize=12, verticalalignment="top")
     return ax1, ax2
 def plot_dop(file_paths, labels, colors, gs_inner, fig):
     """
