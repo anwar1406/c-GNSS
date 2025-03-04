@@ -10,8 +10,6 @@ import os
 # Get the parent directory of scripts/ (which contains package_folder/)
 sys.path.append(os.path.abspath("../c-GNSS"))
 import cGNSS as cg
-
-
 #%%
 
 ##Filepath of processed Data 
