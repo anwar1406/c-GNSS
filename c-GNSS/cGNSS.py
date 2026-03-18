@@ -42,7 +42,7 @@ def plot_csmp(filepath,output_path=None):
     df_csmp = pd.read_excel(filepath)
     
     # Create figure and axis
-    fig, axes = plt.subplots(figsize=(18, 12), dpi=600)
+    fig, axes = plt.subplots(figsize=(18, 12), dpi=300)
     
     # Define x-axis limits
     xlim_i = df_csmp["DOY"].iloc[0] - 0.5
@@ -1528,7 +1528,7 @@ def daily_performance_plot(file_obs,files_dop,file_snr,gamit_path,output_path = 
     colors = ["#e41a1c", "#4daf4a", "#984ea3", "#ff7f00", "#377eb8"]
     
     a4_width, a4_height = 8.27, 11.69  
-    fig = plt.figure(figsize=(a4_width, a4_height), dpi=600)
+    fig = plt.figure(figsize=(a4_width, a4_height), dpi=300)
 
     # Define GridSpec layout with custom row heights
     gs = gridspec.GridSpec(3, 6, height_ratios=[1.5, 1, 1.1])  # Adjusted height ratios
