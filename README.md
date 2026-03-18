@@ -34,10 +34,11 @@ Clone the repository to your local machine:
 git clone https://github.com/anwar1406/c-GNSS.git
 cd c-GNSS
 ```
-###execution
+### Execution
 change config.yaml according to your requirement
+```
 python daily_weekly.py
-
+```
 ## Contributors
 1. Ibaad Anwar
 2. Balaji Devaraju
