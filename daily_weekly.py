@@ -9,6 +9,7 @@ import sys
 import os
 # Get the parent directory of scripts/ (which contains package_folder/)
 #sys.path.append(os.path.abspath("../c-GNSS"))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "c-GNSS")))
 import cGNSS as cg
 
 
