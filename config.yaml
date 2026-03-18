@@ -29,4 +29,4 @@ weekly:
 # OUTPUT
 # -----------------------------
 output:
-  path: "Data/AGRI/output/"
+  path: "Data/AGRI/Output/"
