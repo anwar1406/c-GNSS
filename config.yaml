@@ -1,0 +1,32 @@
+# c-GNSS Configuration File
+
+# -----------------------------
+# DAILY ANALYSIS INPUTS
+# -----------------------------
+daily:
+  dop_files:
+    - "Data/AGRI/RTKLIB/agri_dop_gps.txt"
+    - "Data/AGRI/RTKLIB/agri_dop_glo.txt"
+    - "Data/AGRI/RTKLIB/agri_dop_gal.txt"
+    - "Data/AGRI/RTKLIB/agri_dop_bds.txt"
+    - "Data/AGRI/RTKLIB/agri_dop.txt"
+
+  observation_file: "Data/AGRI/Observation File/AGRI2890.22O"
+  snr_file: "Data/AGRI/RTKLIB/agri_snr.txt"
+  gamit_path: "Data/AGRI/GAMIT/289G/"
+
+# -----------------------------
+# WEEKLY ANALYSIS INPUTS
+# -----------------------------
+weekly:
+  teqc_file: "Data/AGRI/Teqc/AGRI.xlsx"
+  positioning_file: "Data/AGRI/GAMIT/MEAN.AGRI.unk.orbit.res"
+  ztd_ppp_folder: "Data/AGRI/ZTD/PPP"
+  ztd_gamit_folder: "Data/AGRI/ZTD/GAMIT"
+  gamit_basepath: "Data/AGRI/GAMIT/"
+
+# -----------------------------
+# OUTPUT
+# -----------------------------
+output:
+  path: "Data/AGRI/output/"

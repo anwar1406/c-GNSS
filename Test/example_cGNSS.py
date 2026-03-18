@@ -36,6 +36,15 @@ basepath_gamit = "../Data/AGRI/GAMIT/"
 
 #Output path 
 output_path = "../Data/AGRI/output/" # make sure to use backword slash at the end of path
+
+
+#%%
+
+import yaml
+# Load config
+with open("config.yaml", "r") as f:
+    config = yaml.safe_load(f)
+
 #%%
 ##Daily performance full
 cg.daily_performance_plot(file_obs,files_dop,file_snr,gamit_path,output_path)
